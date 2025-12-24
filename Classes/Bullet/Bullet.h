@@ -5,10 +5,10 @@ USING_NS_CC;
 
 class Bullet : public Sprite {
 public:
-    CREATE_FUNC(Bullet); 
+    CREATE_FUNC(Bullet);
 
-    virtual bool init() override; 
-    virtual void update(float delta) override; 
+    virtual bool init() override;
+    virtual void update(float delta) override;
 
 
     CC_SYNTHESIZE(int, m_damage, Damage);
@@ -20,6 +20,6 @@ public:
     CC_SYNTHESIZE(bool, m_isDead, IsDead);
 
 
-    void activate(const Vec2& startPosition, int row);
-    void die();
+    virtual void activate(const Vec2& startPosition, int row);
+    virtual void die();
 };
