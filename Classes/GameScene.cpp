@@ -1,7 +1,7 @@
 //该文件为游戏场景的实现 ——2451401 吕光晔
 #include "GameScene.h"
 #include "SimpleAudioEngine.h"
-#include "CardShop.h";
+//#include "CardShop.h";
 
 USING_NS_CC;
 
@@ -78,30 +78,30 @@ bool Game::init()
         spriteMap->addChild(spriteShop, 0);
     }
 
-    auto adventureModeItem = MenuItemImage::create(
-        "adventureMode.png",
-        "adventureModeSelected.png",
-        CC_CALLBACK_1(Game::plantSelectedCallback, this));
+    //auto adventureModeItem = MenuItemImage::create(
+    //    "adventureMode.png",
+    //    "adventureModeSelected.png",
+    //    CC_CALLBACK_1(Game::plantSelectedCallback, this));
 
-    if (adventureModeItem == nullptr ||
-        adventureModeItem->getContentSize().width <= 0 ||
-        adventureModeItem->getContentSize().height <= 0)
-    {
-        problemLoading("'adventureMode.png' and 'adventureModeSelected.png'");
-    }
-    else
-    {
-        float x = origin.x + visibleSize.width / 9 * 6;
-        float y = origin.y + visibleSize.height / 6 * 4;
-        adventureModeItem->setPosition(Vec2(x, y));
-    }
+    //if (adventureModeItem == nullptr ||
+    //    adventureModeItem->getContentSize().width <= 0 ||
+    //    adventureModeItem->getContentSize().height <= 0)
+    //{
+    //    problemLoading("'adventureMode.png' and 'adventureModeSelected.png'");
+    //}
+    //else
+    //{
+    //    float x = origin.x + visibleSize.width / 9 * 6;
+    //    float y = origin.y + visibleSize.height / 6 * 4;
+    //    adventureModeItem->setPosition(Vec2(x, y));
+    //}
 
-    // create menu, it's an autorelease object
-    auto menu = Menu::create(adventureModeItem, NULL);
-    menu->setPosition(Vec2::ZERO);
-    this->addChild(menu, 1);
-    auto cardshop = CardShop::create();
-    this->addChild(cardshop, 0);
+    //// create menu, it's an autorelease object
+    //auto menu = Menu::create(adventureModeItem, NULL);
+    //menu->setPosition(Vec2::ZERO);
+    //this->addChild(menu, 1);
+    //auto cardshop = CardShop::create();
+    //this->addChild(cardshop, 0);
 
     return true;
 }
