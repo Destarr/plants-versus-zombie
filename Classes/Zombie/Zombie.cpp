@@ -1,7 +1,5 @@
+// Zombie.cpp
 #include "Zombie.h"
-#include "GameScene/GameScene.h" // 假设您的游戏主场景类，用于获取屏幕尺寸等信息
-
-USING_NS_CC;
 
 bool Zombie::init() {
     if (!Sprite::init()) {
@@ -9,16 +7,23 @@ bool Zombie::init() {
     }
 
     // 初始化核心属性
-    m_maxHealth = 100;
+    m_maxHealth = 300;
     m_health = m_maxHealth;
-    m_speed = 20.0f;
-    m_damage = 1;
+    m_originalSpeed = 20.0f;
+    m_speed = m_originalSpeed;
+    m_damage = 100;
     m_isDead = false;
     m_hasReachedHouse = false;
-    m_gameScene = nullptr;  // 初始时场景指针为空，需要在创建后设置
+    m_houseBoundary = 0.0f;  // 默认房子边界在x=0的位置
+    m_attackInterval = 1.0f; // 攻击间隔1秒（可外部修改）
+    m_attackCounter = 0.0f;  // 初始冷却完成，可立即攻击
 
     // 可以在此处设置僵尸的初始纹理
     this->setTexture("Zombie/NormalZombie.png");
+    // 强制刷新contentSize
+    this->setContentSize(this->getTexture()->getContentSize());
+    // 锚点居中
+    this->setAnchorPoint(Vec2(0.5f, 0.5f));
 
     // 开启每帧更新
     this->scheduleUpdate();
@@ -46,21 +51,29 @@ void Zombie::update(float delta) {
     // 存活的僵尸向左移动（向房子前进）
     this->setPositionX(this->getPositionX() - m_speed * delta);
 
-    // 检查是否抵达房子边界
-    if (m_gameScene) {
-        // 调用GameScene的边界检测方法
-        if (m_gameScene->checkZombieReachHouse(this)) {
-            m_hasReachedHouse = true;
-            // 僵尸抵达房子，可以在此处触发相关效果
-            CCLOG("Zombie has reached the house at row %d", m_row);
+    // 更新攻击冷却计时器（每帧减少）
+    if (m_attackCounter > 0) {
+        m_attackCounter -= delta;
+        // 防止负数
+        if (m_attackCounter < 0) {
+            m_attackCounter = 0;
         }
     }
-    else {
-        // 备用方案：如果未设置场景引用，使用简单边界检测
-        if (this->getPositionX() < 50) {
-            m_hasReachedHouse = true;
-            CCLOG("Zombie reached house (fallback detection) at row %d", m_row);
+
+    // 检查是否抵达房子边界
+    if (this->getPositionX() <= m_houseBoundary) {
+        m_hasReachedHouse = true;
+
+        // 触发到达房子的回调
+        if (m_reachHouseCallback) {
+            m_reachHouseCallback(this);
         }
+
+        // 僵尸抵达房子，可以在此处触发相关效果
+        CCLOG("Zombie has reached the house at row %d, position x=%.1f", m_row, this->getPositionX());
+
+        // 停止移动
+        this->stopAllActions();
     }
 }
 
@@ -78,14 +91,14 @@ void Zombie::die() {
     // 标记僵尸为已死亡状态，防止重复处理
     m_isDead = true;
 
-    // 停止所有可能存在的动作，例如移动动画
+    // 停止所有可能存在的动作
     this->stopAllActions();
-    // 停止update函数的调度，死亡后不再需要每帧更新
+    // 停止update函数的调度
     this->unscheduleUpdate();
 
     // 简单的淡出效果后移除
-    auto fadeOut = cocos2d::FadeOut::create(0.5f); // 半秒内淡出
-    auto removeSelf = cocos2d::RemoveSelf::create(true); // 从父节点移除自己
+    auto fadeOut = cocos2d::FadeOut::create(0.5f);
+    auto removeSelf = cocos2d::RemoveSelf::create(true);
     auto sequence = cocos2d::Sequence::create(fadeOut, removeSelf, nullptr);
     this->runAction(sequence);
 

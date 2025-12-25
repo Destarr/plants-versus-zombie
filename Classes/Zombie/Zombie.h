@@ -6,9 +6,6 @@
 
 USING_NS_CC;
 
-// 前向声明GameScene，避免循环依赖
-class GameScene;
-
 class Zombie : public Sprite {
 public:
     CREATE_FUNC(Zombie);
@@ -42,23 +39,36 @@ public:
      */
     bool isAlive() const { return m_health > 0; }
 
-    /**
-     * @brief 设置场景引用，用于边界检测
-     * @param scene 游戏场景指针
-     */
-    void setGameScene(GameScene* scene) { m_gameScene = scene; }
-
     // 使用CC_SYNTHESIZE宏定义属性（自动生成getter和setter）
     CC_SYNTHESIZE(int, m_health, Health);          ///< 当前生命值
     CC_SYNTHESIZE(int, m_maxHealth, MaxHealth);    ///< 最大生命值
     CC_SYNTHESIZE(float, m_speed, Speed);          ///< 移动速度（像素/秒）
+    CC_SYNTHESIZE(float, m_originalSpeed, OriginalSpeed);
     CC_SYNTHESIZE(int, m_damage, Damage);          ///< 攻击力
     CC_SYNTHESIZE(int, m_row, Row);                ///< 僵尸所在的行（0-4）
     CC_SYNTHESIZE(bool, m_isDead, IsDead);         ///< 是否已死亡
+    CC_SYNTHESIZE(float, m_attackInterval, AttackInterval); 
     CC_SYNTHESIZE(bool, m_hasReachedHouse, HasReachedHouse); ///< 是否已抵达房子
 
+    /**
+     * @brief 设置房子边界位置
+     * @param houseBoundary 房子的x坐标边界
+     */
+    void setHouseBoundary(float houseBoundary) { m_houseBoundary = houseBoundary; }
+
+    /**
+     * @brief 设置到达房子的回调函数
+     * @param callback 回调函数
+     */
+    void setReachHouseCallback(const std::function<void(Zombie*)>& callback) {
+        m_reachHouseCallback = callback;
+    }
+
+    float m_attackCounter;
+
 private:
-    GameScene* m_gameScene;  ///< 指向游戏场景的指针，用于边界检测
+    float m_houseBoundary;  ///< 房子的边界位置（默认50.0f）
+    std::function<void(Zombie*)> m_reachHouseCallback; ///< 到达房子的回调函数
 };
 
 #endif // ZOMBIE_H
