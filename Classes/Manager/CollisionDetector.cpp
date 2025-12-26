@@ -1,4 +1,5 @@
 #include "CollisionDetector.h"
+#include"Plant/PotatoMine.h"
 
 
 void CollisionDetector::detectBulletZombieCollisions(
@@ -58,6 +59,15 @@ void CollisionDetector::checkSingleZombieCollisions(Zombie* zombie, const std::v
                 plant->getRow(), plant->getHealth(),
                 plant->getPositionX(), plant->getPositionY());
 
+            // ========== 土豆地雷专属逻辑 ==========
+            PotatoMine* potatoMine = dynamic_cast<PotatoMine*>(plant);
+            if (potatoMine) {
+                if (checkCollision(zombie, potatoMine)) {
+                    // 僵尸触碰土豆地雷，触发爆炸
+                    potatoMine->onZombieCollision(zombie);
+                }
+            }
+
             if (checkCollision(zombie, plant)) {
 
                 zombie->setSpeed(0.0f); // 僵尸停止移动，专注攻击植物
@@ -81,6 +91,14 @@ void CollisionDetector::checkSingleZombieCollisions(Zombie* zombie, const std::v
 
                 // 一个僵尸只攻击第一个碰撞到的植物
                 break;
+            }
+            else {
+                // 未碰撞到植物，但当前速度为0，恢复速度（避免僵尸卡住）
+                if (zombie->getSpeed() <= 0) {
+                    CCLOG("Zombie row %d not collide with plant, resume speed to %.1f",
+                        zombieRow, zombie->getOriginalSpeed());
+                    zombie->setSpeed(zombie->getOriginalSpeed());
+                }
             }
         }
     }

@@ -17,6 +17,10 @@ bool Zombie::init() {
     m_houseBoundary = 0.0f;  // 默认房子边界在x=0的位置
     m_attackInterval = 1.0f; // 攻击间隔1秒（可外部修改）
     m_attackCounter = 0.0f;  // 初始冷却完成，可立即攻击
+    // 初始化减速相关属性
+    m_isSlowed = false;      // 初始未减速
+    m_speedFactor = 1.0f;    // 初始减速系数为1（原速）
+    m_slowCounter = 0.0f;    // 初始减速计时为0
 
     // 可以在此处设置僵尸的初始纹理
     this->setTexture("Zombie/NormalZombie.png");
@@ -31,16 +35,40 @@ bool Zombie::init() {
     return true;
 }
 
+// 新增：实现减速方法
+void Zombie::setSpeedFactor(float factor, float duration) {
+    // 边界检查：系数必须在0~1之间，持续时间必须>0
+    if (factor <= 0 || factor > 1 || duration <= 0 || m_isDead) {
+        return;
+    }
+
+    // 更新减速状态
+    m_isSlowed = true;
+    m_speedFactor = factor;
+    m_slowCounter = duration; // 重置减速计时
+    m_speed = m_originalSpeed * factor; // 计算减速后的速度
+
+    CCLOG("Zombie slowed! Original speed: %.1f, new speed: %.1f, duration: %.1f",
+        m_originalSpeed, m_speed, duration);
+}
+
 void Zombie::update(float delta) {
     // 如果僵尸已经死亡，就不再进行任何逻辑更新
     if (m_isDead) {
         return;
     }
 
-    // 如果僵尸不存活（生命值<=0）但尚未开始死亡流程，则触发死亡
-    if (!isAlive() && !m_isDead) {
-        this->die();
-        return;
+    // 处理减速计时
+    if (m_isSlowed) {
+        // 每帧减少减速剩余时间
+        m_slowCounter -= delta;
+        if (m_slowCounter <= 0) {
+            // 减速时间结束，恢复原速
+            m_isSlowed = false;
+            m_speedFactor = 1.0f;
+            m_speed = m_originalSpeed;
+            CCLOG("Zombie slow effect ended, speed restored to %.1f", m_originalSpeed);
+        }
     }
 
     // 如果僵尸已抵达房子，不再移动
@@ -83,7 +111,7 @@ void Zombie::takeDamage(int damage) {
     m_health -= damage;
     if (m_health <= 0) {
         m_health = 0;
-        // 注意：不在takeDamage中直接调用die()，而是在update中判断，避免在不确定的时机执行移除操作
+        this->die();
     }
 }
 

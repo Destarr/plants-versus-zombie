@@ -64,11 +64,19 @@ public:
         m_reachHouseCallback = callback;
     }
 
+
+    void setSpeedFactor(float factor, float duration);
+
     float m_attackCounter;
 
 private:
     float m_houseBoundary;  ///< 房子的边界位置（默认50.0f）
     std::function<void(Zombie*)> m_reachHouseCallback; ///< 到达房子的回调函数
+
+    // 减速相关属性
+    bool m_isSlowed;        ///< 减速状态标签（是否正在减速）
+    float m_speedFactor;    ///< 减速系数（0~1）
+    float m_slowCounter;    ///< 减速计时计数器（剩余减速时间）
 };
 
 #endif // ZOMBIE_H

@@ -32,6 +32,8 @@ bool Plant::init() {
     drawer->drawPolygon(rectangle, 4, Color4F(0, 1.0f, 0, 0.5f), 1, Color4F(0, 0.5f, 0, 1.0f));
     this->addChild(drawer);
 
+    this->setAnchorPoint(Vec2(0.5f, 0.5f)); // Ãªµã¾ÓÖÐ
+
     this->scheduleUpdate();
     return true;
 }

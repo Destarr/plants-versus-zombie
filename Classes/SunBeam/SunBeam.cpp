@@ -22,28 +22,10 @@ bool SunBeam::init() {
 
 
     // 第三步：统一设置尺寸和锚点
-    this->setContentSize(Size(SUN_DEFAULT_SIZE, SUN_DEFAULT_SIZE));
     this->setAnchorPoint(Vec2(0.5f, 0.5f));
-    this->setScale(SUN_DEFAULT_SIZE / this->getContentSize().width);
 
     // 第四步：开启触摸监听（实现点击收集）
-    auto listener = EventListenerTouchOneByOne::create();
-    listener->setSwallowTouches(true); // 吞噬触摸事件，避免穿透
-    // 触摸开始时检测是否点击到阳光
-    listener->onTouchBegan = [this](Touch* touch, Event* event) -> bool {
-        if (m_isDead || m_isCollected) return false;
 
-        // 转换触摸坐标到本地坐标系
-        Vec2 touchPos = this->convertTouchToNodeSpace(touch);
-        // 检测点击是否在阳光范围内
-        if (this->getBoundingBox().containsPoint(touchPos)) {
-            this->collect(); // 执行收集逻辑
-            return true;
-        }
-        return false;
-        };
-    // 添加监听到事件分发器
-    _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
     // 第五步：开启update调度（管理生命周期）
     this->scheduleUpdate();
@@ -67,12 +49,6 @@ void SunBeam::update(float delta) {
         return;
     }
 
-    // 可选：存活最后3秒闪烁提示（增强交互）
-    if (m_aliveTime >= m_lifeTime - 3.0f && !this->getActionByTag(100)) {
-        auto blink = Blink::create(1.0f, 1);
-        blink->setTag(100); // 标记动画，避免重复添加
-        this->runAction(RepeatForever::create(blink));
-    }
 }
 
 // 新增：阳光被收集的核心逻辑
@@ -108,17 +84,12 @@ void SunBeam::die() {
     this->stopAllActions();
     this->unscheduleUpdate();
 
-    // 移除触摸监听（避免内存泄漏）
-    _eventDispatcher->removeEventListenersForTarget(this);
-
-    // 延迟移除节点（确保动画执行完）
-    this->runAction(Sequence::create(
-        DelayTime::create(0.1f),
-        CallFunc::create([this]() {
-            this->removeFromParent();
-            }),
-        nullptr
-    ));
+    auto fadeOut = FadeOut::create(0.5f);
+    auto remove = CallFunc::create([this]() {
+        this->removeFromParent();
+        });
+    auto sequence = Sequence::create(fadeOut, remove, nullptr);
+    this->runAction(sequence);
 }
 
 void SunBeam::showCollectableAnimation() {

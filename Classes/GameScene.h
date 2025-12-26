@@ -7,6 +7,7 @@
 #include "Zombie/Zombie.h"
 #include"Plant/Plant.h"
 #include"Bullet/Bullet.h"
+#include"Manager/CollisionDetector.h"
 #include <vector>
 
 class Game : public cocos2d::Scene

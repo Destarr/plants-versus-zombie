@@ -29,8 +29,6 @@ public:
     std::function<void(int)> onCollectCallback;
 
 private:
-    // 阳光的默认尺寸
-    const float SUN_DEFAULT_SIZE = 40.0f;
     // 默认存活时间（15秒未收集则自动消失）
     const float DEFAULT_LIFE_TIME = 15.0f;
     // 已存活时间（用于计时）

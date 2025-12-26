@@ -60,7 +60,7 @@ void Bullet::die() {
     CCLOG("Bullet died and is ready for recycling.");
 }
 
-// –¬‘ˆ£∫≈ˆ◊≤Ω© ¨µƒ¬ﬂº≠
+// ≈ˆ◊≤Ω© ¨µƒ¬ﬂº≠
 void Bullet::onHitZombie(Zombie* zombie) {
     if (m_isDead || !zombie || !zombie->isAlive()) return;
     // Ω© ¨ ‹…À∫¶
