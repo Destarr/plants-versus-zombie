@@ -50,8 +50,13 @@ void CherryBomb::update(float delta) {
 }
 
 void CherryBomb::attack() {
-    if (m_isDead || !m_zombiesList) {
+    if (m_isDead) {
         CCLOG("CherryBomb attack failed: dead=%d, zombiesList=%p", m_isDead, m_zombiesList);
+        return;
+    }
+
+    if (!m_zombiesList) {
+        this->die();
         return;
     }
 

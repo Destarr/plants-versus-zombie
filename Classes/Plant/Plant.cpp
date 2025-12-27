@@ -82,11 +82,7 @@ void Plant::die() {
 void Plant::planted(int row, int col, float gridWidth, float gridHeight) {
     m_row = row;
     m_col = col;
-    // 计算植物屏幕坐标（格子中心）
-    float x = m_gridOrigin.x + col * gridWidth + gridWidth / 2;
-    float y = m_gridOrigin.y + row * gridHeight + gridHeight / 2;
-    this->setPosition(Vec2(x, y));
-    CCLOG("Plant planted at row %d, col %d, position (%.1f, %.1f)", row, col, x, y);
+    CCLOG("Plant planted at row %d, col %d", row, col);
 }
 
 void Plant::attack() {

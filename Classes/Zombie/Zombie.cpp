@@ -1,5 +1,6 @@
 // Zombie.cpp
 #include "Zombie.h"
+#include"GameSystem.h"
 
 bool Zombie::init() {
     if (!Sprite::init()) {

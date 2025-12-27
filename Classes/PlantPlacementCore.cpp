@@ -1,6 +1,8 @@
 #include "PlantPlacementCore.h"
 #include "ui/CocosGUI.h"
 
+#include"GameDataCenter.h"
+
 #include "Plant/SunFlower.h"
 #include "Plant/PeaShooter.h"
 #include "Plant/SnowPeaShooter.h"
@@ -255,39 +257,104 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
     float gridCenterX = _gridStartPos.x + col * _gridSize.width + _gridSize.width / 2;
     float gridCenterY = _gridStartPos.y + row * _gridSize.height + _gridSize.height / 2;
 
+
     // 创建实际的植物 先能跑就行 优不优雅咱们另说
     if (_selectedPlantIndex == 0)
     {
         auto plant = SunFlower::create();
         plant->setPosition(Vec2(gridCenterX, gridCenterY));
+        plant->planted(row, col, 80, 100);
         this->addChild(plant);
+        GameDataCenter::getInstance()->addPlant(plant);
     }
     if (_selectedPlantIndex == 1)
     {
         auto plant = Peashooter::create();
         plant->setPosition(Vec2(gridCenterX, gridCenterY));
+        plant->planted(row, col, 80, 100);
         this->addChild(plant);
+        // 添加到共享数据中心
+        GameDataCenter::getInstance()->addPlant(plant);
+
+        // 为攻击型植物设置回调（使用队友的接口）
+        if (auto shooter = dynamic_cast<Peashooter*>(plant)) {
+            // 设置子弹创建回调
+            shooter->setCreateBulletCallback([]() -> Bullet* {
+                auto bullet = Bullet::create();
+                if (bullet) {
+                    GameDataCenter::getInstance()->addBullet(bullet);
+                }
+                return bullet;
+                });
+
+            // 设置僵尸检测回调
+            shooter->setZombieCheckCallback([](int row) -> bool {
+                auto& zombies = GameDataCenter::getInstance()->getZombies();
+                for (auto zombie : zombies) {
+                    if (zombie && zombie->isAlive() && zombie->getRow() == row) {
+                        return true;
+                    }
+                }
+                return false;
+                });
+        }
     }
     if (_selectedPlantIndex == 2)
     {
-        auto plant = SnowPea::create();
+        auto plant = SnowPeaShooter::create();
         plant->setPosition(Vec2(gridCenterX, gridCenterY));
+        plant->planted(row, col, 80, 100);
         this->addChild(plant);
-    }if (_selectedPlantIndex == 3)
+        // 添加到共享数据中心
+        GameDataCenter::getInstance()->addPlant(plant);
+
+        // 为攻击型植物设置回调（使用队友的接口）
+        if (auto shooter = dynamic_cast<SnowPeaShooter*>(plant)) {
+            // 设置子弹创建回调
+            shooter->setCreateBulletCallback([]() -> Bullet* {
+                auto bullet = SnowPea::create();
+                if (bullet) {
+                    GameDataCenter::getInstance()->addBullet(bullet);
+                }
+                return bullet;
+                });
+
+            // 设置僵尸检测回调（核心）
+            plant->setZombieCheckCallback([this](int row) -> bool {
+                // 遍历场景中的僵尸列表，检查指定行是否有存活僵尸
+                auto& zombies = GameDataCenter::getInstance()->getZombies();
+                for (auto zombie : zombies) {
+                    if (zombie && zombie->isAlive() && !zombie->getIsDead() && zombie->getRow() == row) {
+                        return true; // 找到存活僵尸
+                    }
+                }
+                return false; // 无存活僵尸
+                });
+        }
+    }
+    if (_selectedPlantIndex == 3)
     {
         auto plant = CherryBomb::create();
         plant->setPosition(Vec2(gridCenterX, gridCenterY));
+        plant->planted(row, col, 80, 100);
         this->addChild(plant);
-    }if (_selectedPlantIndex == 4)
+        GameDataCenter::getInstance()->addPlant(plant);
+    }
+    if (_selectedPlantIndex == 4)
     {
         auto plant = PotatoMine::create();
         plant->setPosition(Vec2(gridCenterX, gridCenterY));
+        plant->planted(row, col, 80, 100);
         this->addChild(plant);
-    }if (_selectedPlantIndex == 5)
+        GameDataCenter::getInstance()->addPlant(plant);
+    }
+    if (_selectedPlantIndex == 5)
     {
         auto plant = WallNut::create();
         plant->setPosition(Vec2(gridCenterX, gridCenterY));
+        plant->planted(row, col, 80, 100);
         this->addChild(plant);
+        GameDataCenter::getInstance()->addPlant(plant);
     }
 
 

@@ -1,4 +1,7 @@
 #pragma once
+#ifndef __PLANT_H__
+#define __PLANT_H__
+
 #include "cocos2d.h"
 USING_NS_CC;
 
@@ -32,3 +35,5 @@ public:
 
     float m_attackCounter;
 };
+
+#endif

@@ -8,6 +8,8 @@ public:
     static cocos2d::Scene* createScene();
     virtual bool init();
     CREATE_FUNC(Game);
+
+    void Game::update(float delta);
 };
 
 #endif // __GAME_SCENE_H__

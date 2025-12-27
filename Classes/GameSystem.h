@@ -6,6 +6,7 @@ USING_NS_CC;
 
 class GameSystem : public Node {
 public:
+
     static GameSystem* create(Node* gameLayer);
     virtual bool init(Node* gameLayer);
 
@@ -21,6 +22,8 @@ public:
     // 重新开始游戏
     void restartGame();
 
+    void onZombieDefeated(Node* zombie);
+
 private:
     Node* _gameLayer;
     ProgressTimer* _progressBar;
@@ -33,7 +36,12 @@ private:
     bool _isGameRunning;
 
     void spawnZombie(float dt);
-    void onZombieDefeated(Node* zombie);
+    template<typename T>
+    void spawnZombie_standard(int row);
+
+    //僵尸到达房子回调函数
+    void onZombieReachHouse(Zombie* zombie);
+    
     void updateProgress();
     void createProgressBar();
 };

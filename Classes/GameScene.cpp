@@ -1,3 +1,4 @@
+#include "GameDataCenter.h"
 #include "GameScene.h"
 #include "GameSystem.h"
 #include "MenuSystem.h"
@@ -14,6 +15,11 @@ bool Game::init() {
         return false;
     }
 
+    GameDataCenter::getInstance()->reset();
+
+    GameDataCenter* createdInstance;
+
+
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
@@ -23,7 +29,7 @@ bool Game::init() {
 
     // 2. 添加游戏系统（包含进度条和僵尸生成）
     auto gameSystem = GameSystem::create(gameLayer);
-    this->addChild(gameSystem, 10);
+    gameLayer ->addChild(gameSystem, 10);
 
     // 3. 添加菜单系统
     auto menuSystem = MenuSystem::create();
@@ -58,5 +64,20 @@ bool Game::init() {
         nullptr
     ));
 
+    this->scheduleUpdate();
     return true;
+}
+
+void Game::update(float delta) {
+    // 获取共享数据
+    auto& bullets = GameDataCenter::getInstance()->getBullets();
+    auto& zombies = GameDataCenter::getInstance()->getZombies();
+    auto& plants = GameDataCenter::getInstance()->getPlants();
+
+    // 使用队友的碰撞检测接口
+    CollisionDetector::detectBulletZombieCollisions(bullets, zombies);
+    CollisionDetector::detectZombiePlantCollisions(zombies, plants);
+
+    // 清理死亡对象
+    GameDataCenter::getInstance()->cleanupDeadObjects();
 }

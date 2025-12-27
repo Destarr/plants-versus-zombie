@@ -30,8 +30,8 @@ bool SunBeam::init() {
     // 第五步：开启update调度（管理生命周期）
     this->scheduleUpdate();
 
-    CCLOG("SunBeam init success! LifeTime: %.1fs, Size: %.1fx%.1f",
-        m_lifeTime, this->getContentSize().width, this->getContentSize().height);
+    //CCLOG("SunBeam init success! LifeTime: %.1fs, Size: %.1fx%.1f",
+        //m_lifeTime, this->getContentSize().width, this->getContentSize().height);
     return true;
 }
 
@@ -44,7 +44,7 @@ void SunBeam::update(float delta) {
 
     // 超时未收集则自动销毁
     if (m_aliveTime >= m_lifeTime) {
-        CCLOG("SunBeam timeout! Alive time: %.1fs, Life time: %.1fs", m_aliveTime, m_lifeTime);
+       // CCLOG("SunBeam timeout! Alive time: %.1fs, Life time: %.1fs", m_aliveTime, m_lifeTime);
         this->die();
         return;
     }
@@ -56,7 +56,7 @@ void SunBeam::collect() {
     if (m_isDead || m_isCollected) return;
 
     m_isCollected = true;
-    CCLOG("SunBeam collected! Value: %d", m_value);
+    //CCLOG("SunBeam collected! Value: %d", m_value);
 
     // 执行收集回调（通知场景增加阳光数值）
     if (onCollectCallback) {
@@ -78,7 +78,7 @@ void SunBeam::die() {
     if (m_isDead) return;
 
     m_isDead = true;
-    CCLOG("SunBeam die! Collected: %d, Value: %d", m_isCollected, m_value);
+    //CCLOG("SunBeam die! Collected: %d, Value: %d", m_isCollected, m_value);
 
     // 停止所有动画和更新
     this->stopAllActions();
@@ -103,5 +103,5 @@ void SunBeam::showCollectableAnimation() {
     auto floatLoop = RepeatForever::create(Sequence::create(float1, float2, nullptr));
 
     this->runAction(Sequence::create(moveUp, floatLoop, nullptr));
-    CCLOG("SunBeam animation started!");
+    //CCLOG("SunBeam animation started!");
 }

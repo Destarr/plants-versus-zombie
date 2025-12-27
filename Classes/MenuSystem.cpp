@@ -101,4 +101,5 @@ void MenuSystem::onRestartClicked(Ref* sender) {
     // 使用replaceScene重新开始
     auto scene = Game::createScene();
     Director::getInstance()->replaceScene(scene);
+    Director::getInstance()->resume();
 }

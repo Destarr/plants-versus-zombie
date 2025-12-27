@@ -1,4 +1,8 @@
 #pragma once
+#ifndef __BULLET_H__
+#define __BULLET_H__
+
+
 #include "cocos2d.h"
 #include "Zombie/Zombie.h"
 USING_NS_CC;
@@ -26,3 +30,5 @@ public:
     // 新增：碰撞僵尸的回调接口
     virtual void onHitZombie(Zombie* zombie);
 };
+
+#endif
