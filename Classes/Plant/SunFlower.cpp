@@ -67,4 +67,8 @@ void SunFlower::produceSun() {
 
     // 播放阳光动画
     sun->showCollectableAnimation();
+
+    // 重置攻击计数器（核心：生产阳光后重置计时，否则会一直生产）
+    this->m_attackCounter = this->getAttackInterval();
+    this->m_isReady = false;
 }

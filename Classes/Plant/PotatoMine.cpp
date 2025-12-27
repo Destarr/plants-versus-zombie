@@ -10,8 +10,6 @@ bool PotatoMine::init() {
 
     // ========== 复用父类属性配置 ==========
     m_sunCost = 25;                // 阳光消耗（原版25）
-    m_maxHealth = 1;               // 生命值（1点，被碰就炸）
-    m_health = m_maxHealth;
     m_attackInterval = 15.0f;       // 出土冷却时间（15秒）
     m_attackCounter = m_attackInterval; // 初始倒计时15秒
     m_isReady = false;             // 初始未出土，不可爆炸

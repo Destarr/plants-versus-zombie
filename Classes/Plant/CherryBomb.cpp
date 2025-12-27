@@ -10,8 +10,6 @@ bool CherryBomb::init() {
 
     // ========== 复用父类属性配置 ==========
     m_sunCost = 150;               // 阳光消耗（原版150）
-    m_maxHealth = 1;               // 生命值（1点，前摇结束即爆炸）
-    m_health = m_maxHealth;
     m_attackInterval = 1.0f;       // 爆炸前摇时间（1秒）
     m_attackCounter = m_attackInterval; // 初始倒计时1秒
     m_isReady = false;             // 初始未就绪，不可爆炸

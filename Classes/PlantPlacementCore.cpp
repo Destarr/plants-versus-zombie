@@ -339,6 +339,8 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
         plant->planted(row, col, 80, 100);
         this->addChild(plant);
         GameDataCenter::getInstance()->addPlant(plant);
+        auto& zombielist = GameDataCenter::getInstance()->getZombies();
+        plant->setZombiesList(&zombielist);
     }
     if (_selectedPlantIndex == 4)
     {
@@ -347,6 +349,8 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
         plant->planted(row, col, 80, 100);
         this->addChild(plant);
         GameDataCenter::getInstance()->addPlant(plant);
+        auto& zombielist = GameDataCenter::getInstance()->getZombies();
+        plant->setZombiesList(&zombielist);
     }
     if (_selectedPlantIndex == 5)
     {
