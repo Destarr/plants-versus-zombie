@@ -6,7 +6,8 @@
 #include "Zombie/BucketheadZombie.h" 
 #include <typeinfo>
 
-
+#include "SimpleAudioEngine.h"
+using namespace CocosDenshion;
 #include "audio/include/AudioEngine.h"
 using namespace cocos2d::experimental;
 
@@ -152,6 +153,11 @@ void GameSystem::onZombieDefeated(Zombie* zombie) {
     if (_defeatedZombies >= _totalZombies) {
         AudioEngine::play2d("music/winmusic.ogg", false, 1.0f);
         Director::getInstance()->pause();
+
+        // stop background music.
+        auto audio = SimpleAudioEngine::getInstance();
+        audio->stopBackgroundMusic();
+
         _isGameOver = true;
         showGameOverUI(true); // true表示胜利
     }
@@ -200,6 +206,9 @@ void GameSystem::onZombieReachHouse(Zombie* zombie)
 
         AudioEngine::play2d("music/losemusic.ogg", false, 1.0f);
         Director::getInstance()->pause();
+        // stop background music.
+        auto audio = SimpleAudioEngine::getInstance();
+        audio->stopBackgroundMusic();
         _isGameOver = true;
         showGameOverUI(false); // false表示失败
     }
