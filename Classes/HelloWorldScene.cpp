@@ -49,8 +49,8 @@ bool HelloWorld::init()
     }
     else
     {
-        float x = origin.x + visibleSize.width / 9 * 6;
-        float y = origin.y + visibleSize.height / 6 * 4;
+        float x = origin.x + visibleSize.width / 9 * 6.4f;
+        float y = origin.y + visibleSize.height / 6 * 4.2f;
         adventureModeItem->setPosition(Vec2(x,y));
     }
 
