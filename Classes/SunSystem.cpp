@@ -1,6 +1,9 @@
 #include "SunSystem.h"
 #include "ui/CocosGUI.h"
 
+#include "audio/include/AudioEngine.h"
+using namespace cocos2d::experimental;
+
 USING_NS_CC;
 
 bool SunSystem::init() {
@@ -251,7 +254,7 @@ void SunSystem::onSunCollected(Sprite* sun) {
     }
 
     CCLOG("Sun collected!");
-
+    AudioEngine::play2d("music/sun.ogg", false, 1.0f);
     // 获取阳光值
     int sunValue = DEFAULT_SUN_VALUE;
     if (sun->getUserData()) {

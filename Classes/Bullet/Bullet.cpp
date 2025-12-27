@@ -1,11 +1,13 @@
 #include "Bullet.h"
 // 引入Zombie头文件（实际碰撞检测类需包含）
-
+#include "audio/include/AudioEngine.h"
+using namespace cocos2d::experimental;
 
 bool Bullet::init() {
     if (!Sprite::init()) {
         return false;
     }
+    AudioEngine::play2d("music/shoop.ogg", false, 1.0f);
 
     m_damage = 1;
     m_speed = 300.0f;
@@ -64,7 +66,9 @@ void Bullet::die() {
 void Bullet::onHitZombie(Zombie* zombie) {
     if (m_isDead || !zombie || !zombie->isAlive()) return;
     // 僵尸受伤害
+    AudioEngine::play2d("music/splat.ogg", false, 1.0f);
     zombie->takeDamage(m_damage);
+
     // 子弹命中后死亡
     this->die();
     CCLOG("Bullet hit zombie, damage: %d", m_damage);

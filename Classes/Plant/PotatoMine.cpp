@@ -1,6 +1,9 @@
 #include "PotatoMine.h"
 #include "cocos2d.h"
 
+#include "audio/include/AudioEngine.h"
+using namespace cocos2d::experimental;
+
 USING_NS_CC;
 
 bool PotatoMine::init() {
@@ -105,6 +108,7 @@ void PotatoMine::onZombieCollision(Zombie* zombie) {
     // 仅出土后触碰才触发爆炸
     if (m_isReady && !m_isDead && zombie && zombie->isAlive()) {
         CCLOG("Zombie touched PotatoMine! Trigger explosion");
+        AudioEngine::play2d("music/potato_mine.ogg", false, 1.0f);
         this->attack(); // 触发爆炸攻击
     }
 }

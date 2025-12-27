@@ -1,6 +1,12 @@
 #include "MenuSystem.h"
 #include "GameScene.h"
 
+#include "audio/include/AudioEngine.h"
+using namespace cocos2d::experimental;
+
+#include "SimpleAudioEngine.h"
+using namespace CocosDenshion;
+
 USING_NS_CC;
 
 bool MenuSystem::init() {
@@ -79,9 +85,13 @@ void MenuSystem::createPauseMenu() {
 
 void MenuSystem::onMenuButtonClicked(Ref* sender) {
     if (_isMenuVisible) return;
-
+    AudioEngine::play2d("music/butter.ogg", false, 1.0f);
     _isMenuVisible = true;
     _menuOverlay->setVisible(true);
+
+    // pause background music.
+    auto audio = SimpleAudioEngine::getInstance();
+    audio->pauseBackgroundMusic();
 
     // 暂停游戏
     Director::getInstance()->pause();
@@ -89,9 +99,13 @@ void MenuSystem::onMenuButtonClicked(Ref* sender) {
 
 void MenuSystem::onContinueClicked(Ref* sender) {
     if (!_isMenuVisible) return;
-
+    AudioEngine::play2d("music/butter.ogg", false, 1.0f);
     _isMenuVisible = false;
     _menuOverlay->setVisible(false);
+
+    // resume background music.
+    auto audio = SimpleAudioEngine::getInstance();
+    audio->resumeBackgroundMusic();
 
     // 恢复游戏
     Director::getInstance()->resume();
@@ -99,6 +113,7 @@ void MenuSystem::onContinueClicked(Ref* sender) {
 
 void MenuSystem::onRestartClicked(Ref* sender) {
     // 使用replaceScene重新开始
+    AudioEngine::play2d("music/butter.ogg", false, 1.0f);
     auto scene = Game::createScene();
     Director::getInstance()->replaceScene(scene);
     Director::getInstance()->resume();

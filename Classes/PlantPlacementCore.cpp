@@ -10,6 +10,12 @@
 #include "Plant/PotatoMine.h"
 #include "Plant/WallNut.h"
 
+#include "SimpleAudioEngine.h"
+using namespace CocosDenshion;
+
+#include "audio/include/AudioEngine.h"
+using namespace cocos2d::experimental;
+
 USING_NS_CC;
 
 bool PlantPlacementCore::init() {
@@ -541,6 +547,9 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
         this->addChild(plant);
         GameDataCenter::getInstance()->addPlant(plant);
     }
+
+    //这个可以.ogg!!!!原来那个不行!!!
+    AudioEngine::play2d("music/plant.ogg", false, 1.0f);
 
     // 启动冷却
     startCooldown(_selectedPlantIndex);

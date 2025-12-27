@@ -1,6 +1,9 @@
 #include "CherryBomb.h"
 #include "cocos2d.h"
 
+#include "audio/include/AudioEngine.h"
+using namespace cocos2d::experimental;
+
 USING_NS_CC;
 
 bool CherryBomb::init() {
@@ -56,10 +59,11 @@ void CherryBomb::attack() {
     }
 
     if (!m_zombiesList) {
+        AudioEngine::play2d("music/cherrybomb.ogg", false, 1.0f);
         this->die();
         return;
     }
-
+    AudioEngine::play2d("music/cherrybomb.ogg", false, 1.0f);
     CCLOG("===== CherryBomb Explosion =====");
     Vec2 bombPos = this->getPosition();
     CCLOG("Bomb position: (%.1f, %.1f), explosion radius: %.1f, damage: %d",
@@ -95,6 +99,7 @@ void CherryBomb::attack() {
 
 void CherryBomb::die() {
     if (m_isDead) return;
+
     m_isDead = true;
 
     // 停止更新和所有动作

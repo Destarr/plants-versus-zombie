@@ -1,8 +1,9 @@
 //该文件作为游戏主界面菜单的实现
 #include "GameScene.h"
 #include "HelloWorldScene.h"
-#include "SimpleAudioEngine.h"
 
+#include "SimpleAudioEngine.h"
+using namespace CocosDenshion;
 
 USING_NS_CC;
 
@@ -27,6 +28,11 @@ bool HelloWorld::init()
     {
         return false;
     }
+
+    auto audio = SimpleAudioEngine::getInstance();
+
+    // set the background music and continuously play it.
+    audio->playBackgroundMusic("music/HelloScene.mp3", true);
 
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();

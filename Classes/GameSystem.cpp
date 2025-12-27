@@ -6,6 +6,10 @@
 #include "Zombie/BucketheadZombie.h" 
 #include <typeinfo>
 
+
+#include "audio/include/AudioEngine.h"
+using namespace cocos2d::experimental;
+
 USING_NS_CC;
 
 GameSystem* GameSystem::create(Node* gameLayer) {
@@ -146,6 +150,7 @@ void GameSystem::onZombieDefeated(Zombie* zombie) {
 
     // 如果击败了所有僵尸，游戏胜利
     if (_defeatedZombies >= _totalZombies) {
+        AudioEngine::play2d("music/winmusic.ogg", false, 1.0f);
         Director::getInstance()->pause();
         _isGameOver = true;
         showGameOverUI(true); // true表示胜利
@@ -173,7 +178,7 @@ void GameSystem::spawnZombie_standard(int row)
         auto visibleSize = Director::getInstance()->getVisibleSize();
         // 设置僵尸属性
         zombie->setRow(row);                  // 设置所在行
-        zombie->setPosition(Vec2(visibleSize.width + 50, 50 + row * 100)); // 设置初始位置
+        zombie->setPosition(Vec2(visibleSize.width + 50, 90 + row * 100)); // 设置初始位置
         zombie->setHouseBoundary(0.0f);     // 设置房子边界位置（可根据实际调整）
 
         // 设置僵尸到达房子的回调
@@ -192,6 +197,8 @@ void GameSystem::onZombieReachHouse(Zombie* zombie)
     if (zombie && !_isGameOver)
     {
         CCLOG("Game: Zombie reached house at row %d! Game over for this row!", zombie->getRow());
+
+        AudioEngine::play2d("music/losemusic.ogg", false, 1.0f);
         Director::getInstance()->pause();
         _isGameOver = true;
         showGameOverUI(false); // false表示失败

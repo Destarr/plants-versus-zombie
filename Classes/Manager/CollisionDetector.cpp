@@ -1,6 +1,8 @@
 #include "CollisionDetector.h"
 #include"Plant/PotatoMine.h"
 
+#include "audio/include/AudioEngine.h"
+using namespace cocos2d::experimental;
 
 void CollisionDetector::detectBulletZombieCollisions(
     const std::vector<Bullet*>& bullets,
@@ -63,6 +65,7 @@ void CollisionDetector::checkSingleZombieCollisions(Zombie* zombie, const std::v
             PotatoMine* potatoMine = dynamic_cast<PotatoMine*>(plant);
             if (potatoMine) {
                 if (checkCollision(zombie, potatoMine)) {
+
                     // ½©Ê¬´¥ÅöÍÁ¶¹µØÀ×£¬´¥·¢±¬Õ¨
                     potatoMine->onZombieCollision(zombie);
                 }
@@ -75,12 +78,14 @@ void CollisionDetector::checkSingleZombieCollisions(Zombie* zombie, const std::v
                 //¼ì²é¹¥»÷ÀäÈ´£¬½öÀäÈ´½áÊøÊ±¿ÛÑª
                 if (zombie->m_attackCounter <= 0) {
                     CCLOG("Collision detected! Zombie hit plant, damage: %d", zombieDamage);
+                    AudioEngine::play2d("music/chomp.ogg", false, 1.0f);
                     plant->takeDamage(zombieDamage);
                     // ÖØÖÃ¹¥»÷ÀäÈ´¼ÆÊ±Æ÷
                     zombie->m_attackCounter = zombie->getAttackInterval();
 
                     // 3. ¼ì²éÖ²ÎïÊÇ·ñ±»»÷É±
                     if (plant->getHealth() <= 0 || plant->getIsDead()) {
+                        AudioEngine::play2d("music/gulp.ogg", false, 1.0f);
                         CCLOG("Plant died! Zombie resume moving, speed=%.1f", zombie->getOriginalSpeed());
                         zombie->setSpeed(zombie->getOriginalSpeed()); // »Ö¸´Ô­Ê¼ËÙ¶È
                     }

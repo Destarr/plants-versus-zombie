@@ -5,6 +5,9 @@
 #include "PlantPlacementCore.h"
 #include "SunSystem.h"
 
+#include "SimpleAudioEngine.h"
+using namespace CocosDenshion;
+
 USING_NS_CC;
 
 Scene* Game::createScene() {
@@ -20,7 +23,10 @@ bool Game::init() {
 
     GameDataCenter* createdInstance;
 
+    auto audio = SimpleAudioEngine::getInstance();
 
+    // set the background music and continuously play it.
+    audio->playBackgroundMusic("music/GameScene.mp3", true);
 
 
     auto visibleSize = Director::getInstance()->getVisibleSize();
