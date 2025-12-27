@@ -1,7 +1,7 @@
 #include "PlantPlacementCore.h"
 #include "ui/CocosGUI.h"
-
-#include"GameDataCenter.h"
+#include "GameDataCenter.h"
+#include "SunSystem.h"
 
 #include "Plant/SunFlower.h"
 #include "Plant/PeaShooter.h"
@@ -20,6 +20,12 @@ bool PlantPlacementCore::init() {
     // 初始化状态
     _selectedPlantIndex = -1;  // 未选中任何植物
     _draggingPlant = nullptr;
+    _sunSystem = nullptr;
+
+    // 初始化冷却计时器
+    for (int i = 0; i < 6; i++) {
+        _cooldownTimers.push_back(0.0f);
+    }
 
     // 获取屏幕信息
     auto visibleSize = Director::getInstance()->getVisibleSize();
@@ -28,18 +34,20 @@ bool PlantPlacementCore::init() {
     // 设置格子大小和起始位置
     _gridSize = Size(80, 100);
 
-    // **修正：第一个格子（0行0列）的左下角位置**
-    // 从左侧开始，离左边缘50像素，从底部开始，离底部20像素
+    // 修正：第一个格子（0行0列）的左下角位置
     _gridStartPos = Vec2(origin.x + 50, origin.y + 20);
 
     // 初始化植物槽位（移到左上角）
     initPlantSlots();
 
-    // 绘制调试网格（可选，帮助理解坐标）
+    // 绘制调试网格（可选）
     drawDebugGrids();
 
     // 设置触摸事件
     setupTouchHandlers();
+
+    // 调度冷却更新
+    schedule(schedule_selector(PlantPlacementCore::updateCooldown), 0.1f);
 
     return true;
 }
@@ -49,20 +57,83 @@ void PlantPlacementCore::initPlantSlots() {
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
-    // **修改：将植物槽位移到左上角（垂直排列）**
+    // 修改：将植物槽位移到左上角（垂直排列）
     float startX = origin.x + 150;  // 离左边缘150像素
     float startY = origin.y + visibleSize.height - 5;  // 离顶部5像素
 
     for (int i = 0; i < 6; i++) {
-
-        // 植物图标
+        // 正常颜色植物图标
         auto plantIcon = Sprite::create(_plantImages[i]);
         if (plantIcon) {
             plantIcon->setAnchorPoint(Vec2(0, 1));
             plantIcon->setPosition(Vec2(startX + i * 60, startY));
             plantIcon->setTag(i);  // 用tag标识植物类型
-            this->addChild(plantIcon);
+            this->addChild(plantIcon, 2);
             _plantSlots.push_back(plantIcon);
+        }
+        else {
+            // 如果加载失败，使用一个占位符
+            plantIcon = Sprite::create();
+            plantIcon->setContentSize(Size(50, 50));
+            plantIcon->setAnchorPoint(Vec2(0, 1));
+            plantIcon->setPosition(Vec2(startX + i * 60, startY));
+            plantIcon->setTag(i);
+            this->addChild(plantIcon, 2);
+            _plantSlots.push_back(plantIcon);
+        }
+
+        // 灰色植物图标（用于冷却和阳光不足）
+        auto grayIcon = Sprite::create(_plantImages[i]);
+        if (grayIcon) {
+            grayIcon->setAnchorPoint(Vec2(0, 1));
+            grayIcon->setPosition(Vec2(startX + i * 60, startY));
+            grayIcon->setTag(i + 10);
+            grayIcon->setColor(Color3B(100, 100, 100));  // 变灰
+            grayIcon->setVisible(false);
+            this->addChild(grayIcon, 1);
+            _plantGraySlots.push_back(grayIcon);
+        }
+        else {
+            // 如果加载失败，使用一个占位符
+            grayIcon = Sprite::create();
+            grayIcon->setContentSize(Size(50, 50));
+            grayIcon->setAnchorPoint(Vec2(0, 1));
+            grayIcon->setPosition(Vec2(startX + i * 60, startY));
+            grayIcon->setTag(i + 10);
+            grayIcon->setColor(Color3B(100, 100, 100));
+            grayIcon->setVisible(false);
+            this->addChild(grayIcon, 1);
+            _plantGraySlots.push_back(grayIcon);
+        }
+
+        // 冷却进度条（从上到下）
+        // 先创建一个简单的矩形精灵作为进度条背景
+        auto maskSprite = Sprite::create();
+        if (maskSprite) {
+            // 创建一个小的矩形精灵
+            maskSprite->setTextureRect(Rect(0, 0, 50, 50));
+            maskSprite->setColor(Color3B::BLACK);
+            maskSprite->setOpacity(150);  // 半透明
+
+            auto progress = ProgressTimer::create(maskSprite);
+            if (progress) {
+                progress->setType(ProgressTimer::Type::BAR);
+                progress->setMidpoint(Vec2(0.5f, 1.0f));  // 从上到下
+                progress->setBarChangeRate(Vec2(0, 1));   // 垂直变化
+                progress->setPercentage(100);  // 初始满的
+                progress->setAnchorPoint(Vec2(0, 1));
+                progress->setPosition(Vec2(startX + i * 60, startY));
+                progress->setTag(i + 20);
+                progress->setVisible(false);  // 默认隐藏
+                this->addChild(progress, 3);
+                _cooldownProgress.push_back(progress);
+            }
+            else {
+                _cooldownProgress.push_back(nullptr);
+            }
+        }
+        else {
+            _cooldownProgress.push_back(nullptr);
         }
     }
 }
@@ -105,7 +176,7 @@ void PlantPlacementCore::drawDebugGrids() {
     startMarker->drawSolidCircle(_gridStartPos, 5, 0, 8, Color4F(1, 0, 0, 1));
 
     // 添加起始点标签
-    auto startLabel = Label::createWithTTF("起始点(0,0)", "fonts/Marker Felt.ttf", 12);
+    auto startLabel = Label::createWithTTF("origin(0,0)", "fonts/Marker Felt.ttf", 12);
     startLabel->setPosition(_gridStartPos + Vec2(0, -20));
     startLabel->setColor(Color3B::RED);
 
@@ -114,7 +185,7 @@ void PlantPlacementCore::drawDebugGrids() {
     this->addChild(startLabel, 1);
 }
 
-// 设置触摸事件（保持不变）
+// 设置触摸事件
 void PlantPlacementCore::setupTouchHandlers() {
     _touchListener = EventListenerTouchOneByOne::create();
 
@@ -134,7 +205,7 @@ void PlantPlacementCore::setupTouchHandlers() {
     _eventDispatcher->addEventListenerWithSceneGraphPriority(_touchListener, this);
 }
 
-// 触摸开始（关键修改：修正坐标计算）
+// 触摸开始
 void PlantPlacementCore::onTouchBegan(Touch* touch) {
     Vec2 touchPos = touch->getLocation();
 
@@ -148,35 +219,148 @@ void PlantPlacementCore::onTouchBegan(Touch* touch) {
     for (size_t i = 0; i < _plantSlots.size(); i++) {
         auto slot = _plantSlots[i];
         if (slot && slot->getBoundingBox().containsPoint(touchPos)) {
-            selectPlant((int)i);
+            if (canSelectPlant((int)i)) {
+                selectPlant((int)i);
+            }
+            else {
+                // 显示无法选择的提示
+                showCannotSelectTip((int)i);
+            }
             return;
         }
     }
 }
 
-// 触摸移动（保持不变）
+// 触摸移动
 void PlantPlacementCore::onTouchMoved(Touch* touch) {
     if (_selectedPlantIndex != -1 && _draggingPlant) {
         _draggingPlant->setPosition(touch->getLocation());
     }
 }
 
-// 触摸结束（保持不变）
+// 触摸结束
 void PlantPlacementCore::onTouchEnded(Touch* touch) {
     // 可以添加一些触摸结束的逻辑
 }
 
-// 选择植物（保持不变）
+// 更新冷却系统
+void PlantPlacementCore::updateCooldown(float dt) {
+    for (int i = 0; i < 6; i++) {
+        if (_cooldownTimers[i] > 0) {
+            _cooldownTimers[i] -= dt;
+            if (_cooldownTimers[i] < 0) {
+                _cooldownTimers[i] = 0;
+            }
+
+            // 更新进度条
+            float progressPercentage = (_cooldownTimers[i] / _cooldownDurations[i]) * 100;
+            if (_cooldownProgress[i]) {
+                _cooldownProgress[i]->setPercentage(progressPercentage);
+            }
+
+            // 如果冷却完成
+            if (_cooldownTimers[i] <= 0) {
+                updatePlantSlotState(i, true);
+            }
+        }
+    }
+}
+
+// 开始冷却
+void PlantPlacementCore::startCooldown(int plantIndex) {
+    if (plantIndex >= 0 && plantIndex < 6) {
+        _cooldownTimers[plantIndex] = _cooldownDurations[plantIndex];
+        updatePlantSlotState(plantIndex, false);
+
+        // 显示冷却进度条
+        if (_cooldownProgress[plantIndex]) {
+            _cooldownProgress[plantIndex]->setVisible(true);
+            _cooldownProgress[plantIndex]->setPercentage(100);
+        }
+    }
+}
+
+// 检查是否可以选中植物
+bool PlantPlacementCore::canSelectPlant(int plantIndex) {
+    // 检查冷却
+    if (_cooldownTimers[plantIndex] > 0) {
+        return false;
+    }
+
+    // 检查阳光是否足够
+    if (_sunSystem && _sunSystem->getSunCount() < _sunCosts[plantIndex]) {
+        return false;
+    }
+
+    return true;
+}
+
+// 更新植物槽位状态
+void PlantPlacementCore::updatePlantSlotState(int index, bool enabled) {
+    if (index >= 0 && index < _plantSlots.size()) {
+        if (enabled) {
+            // 可用状态
+            _plantSlots[index]->setVisible(true);
+            if (_plantGraySlots[index]) {
+                _plantGraySlots[index]->setVisible(false);
+            }
+            if (_cooldownProgress[index]) {
+                _cooldownProgress[index]->setVisible(false);
+            }
+        }
+        else {
+            // 不可用状态（冷却中）
+            _plantSlots[index]->setVisible(false);
+            if (_plantGraySlots[index]) {
+                _plantGraySlots[index]->setVisible(true);
+            }
+        }
+    }
+}
+
+// 显示无法选择的提示
+void PlantPlacementCore::showCannotSelectTip(int plantIndex) {
+    std::string tipText;
+
+    // 检查原因
+    if (_cooldownTimers[plantIndex] > 0) {
+        tipText = "Plant on Cooldown!";
+    }
+    else if (_sunSystem && _sunSystem->getSunCount() < _sunCosts[plantIndex]) {
+        tipText = "Not enough sun!";
+        tipText += " Need: " + std::to_string(_sunCosts[plantIndex]);
+    }
+    else {
+        tipText = "Can't select!";
+    }
+
+    auto label = Label::createWithTTF(tipText, "fonts/Marker Felt.ttf", 60);
+    label->setColor(Color3B::RED);
+    label->setPosition(Vec2(400, 100));
+    this->addChild(label, 100);
+
+    // 淡出并移除提示
+    label->runAction(Sequence::create(
+        MoveBy::create(1.0f, Vec2(0, 30)),
+        FadeOut::create(0.5f),
+        RemoveSelf::create(),
+        nullptr));
+}
+
+// 选择植物
 void PlantPlacementCore::selectPlant(int plantIndex) {
     if (_selectedPlantIndex != -1) {
         cancelSelection();
     }
-    //创建种植提示
-    auto label = Label::createWithTTF(
-        StringUtils::format("Please place it at map!"),
-        "fonts/Marker Felt.ttf",
-        90
-    );
+
+    // 检查阳光是否足够
+    if (_sunSystem && _sunSystem->getSunCount() < _sunCosts[plantIndex]) {
+        showCannotSelectTip(plantIndex);
+        return;
+    }
+
+    // 创建种植提示
+    auto label = Label::createWithTTF("Please place it at map!", "fonts/Marker Felt.ttf", 90);
     label->setColor(Color3B::GREEN);
     label->setPosition(Vec2(400, 100));
     this->addChild(label, 100);
@@ -188,7 +372,6 @@ void PlantPlacementCore::selectPlant(int plantIndex) {
         RemoveSelf::create(),
         nullptr));
 
-
     _selectedPlantIndex = plantIndex;
 
     if (_draggingPlant) {
@@ -199,13 +382,13 @@ void PlantPlacementCore::selectPlant(int plantIndex) {
     _draggingPlant = Sprite::create(_plantImages[plantIndex]);
     _draggingPlant->setOpacity(180);
     this->addChild(_draggingPlant, 10);
-    
+
     auto touchPos = Director::getInstance()->getVisibleOrigin();
     _draggingPlant->setAnchorPoint(Vec2(0, 0));
     _draggingPlant->setPosition(touchPos);
 }
 
-// 取消选择（保持不变）
+// 取消选择
 void PlantPlacementCore::cancelSelection() {
     _selectedPlantIndex = -1;
 
@@ -215,28 +398,29 @@ void PlantPlacementCore::cancelSelection() {
     }
 }
 
-// 放置植物到指定位置（关键修改：修正坐标计算）
+// 放置植物到指定位置
 void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
     if (_selectedPlantIndex == -1 || !_draggingPlant) {
         return;
     }
 
-    // **修正：计算点击位置对应的行列**
-    // 相对于起始点的偏移
-    float offsetX = position.x - _gridStartPos.x;
-    float offsetY = position.y - _gridStartPos.y;  // Y轴向上增加
+    // 检查阳光是否足够
+    if (_sunSystem && _sunSystem->getSunCount() < _sunCosts[_selectedPlantIndex]) {
+        showCannotSelectTip(_selectedPlantIndex);
+        cancelSelection();
+        return;
+    }
 
-    // 计算行列号
+    // 计算点击位置对应的行列
+    float offsetX = position.x - _gridStartPos.x;
+    float offsetY = position.y - _gridStartPos.y;
+
     int col = static_cast<int>(offsetX / _gridSize.width);
     int row = static_cast<int>(offsetY / _gridSize.height);
 
     // 检查是否在有效范围内
     if (col < 0 || col >= GRID_COLS || row < 0 || row >= GRID_ROWS) {
-        auto label = Label::createWithTTF(
-            StringUtils::format("You can't placed here!"),
-            "fonts/Marker Felt.ttf",
-            90
-        );
+        auto label = Label::createWithTTF("You can't placed here!", "fonts/Marker Felt.ttf", 90);
         label->setColor(Color3B::RED);
         label->setPosition(Vec2(400, 100));
         this->addChild(label, 100);
@@ -251,14 +435,20 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
         return;
     }
 
-    // **修正：计算格子中心位置**
-    // 左下角 + 半个格子宽度 = 中心X
-    // 左下角 + 半个格子高度 = 中心Y
+    // 消耗阳光
+    if (_sunSystem) {
+        if (!_sunSystem->consumeSun(_sunCosts[_selectedPlantIndex])) {
+            showCannotSelectTip(_selectedPlantIndex);
+            cancelSelection();
+            return;
+        }
+    }
+
+    // 计算格子中心位置
     float gridCenterX = _gridStartPos.x + col * _gridSize.width + _gridSize.width / 2;
     float gridCenterY = _gridStartPos.y + row * _gridSize.height + _gridSize.height / 2;
 
-
-    // 创建实际的植物 先能跑就行 优不优雅咱们另说
+    // 创建实际的植物
     if (_selectedPlantIndex == 0)
     {
         auto plant = SunFlower::create();
@@ -267,18 +457,15 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
         this->addChild(plant);
         GameDataCenter::getInstance()->addPlant(plant);
     }
-    if (_selectedPlantIndex == 1)
+    else if (_selectedPlantIndex == 1)
     {
         auto plant = Peashooter::create();
         plant->setPosition(Vec2(gridCenterX, gridCenterY));
         plant->planted(row, col, 80, 100);
         this->addChild(plant);
-        // 添加到共享数据中心
         GameDataCenter::getInstance()->addPlant(plant);
 
-        // 为攻击型植物设置回调（使用队友的接口）
         if (auto shooter = dynamic_cast<Peashooter*>(plant)) {
-            // 设置子弹创建回调
             shooter->setCreateBulletCallback([]() -> Bullet* {
                 auto bullet = Bullet::create();
                 if (bullet) {
@@ -287,7 +474,6 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
                 return bullet;
                 });
 
-            // 设置僵尸检测回调
             shooter->setZombieCheckCallback([](int row) -> bool {
                 auto& zombies = GameDataCenter::getInstance()->getZombies();
                 for (auto zombie : zombies) {
@@ -299,18 +485,15 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
                 });
         }
     }
-    if (_selectedPlantIndex == 2)
+    else if (_selectedPlantIndex == 2)
     {
         auto plant = SnowPeaShooter::create();
         plant->setPosition(Vec2(gridCenterX, gridCenterY));
         plant->planted(row, col, 80, 100);
         this->addChild(plant);
-        // 添加到共享数据中心
         GameDataCenter::getInstance()->addPlant(plant);
 
-        // 为攻击型植物设置回调（使用队友的接口）
         if (auto shooter = dynamic_cast<SnowPeaShooter*>(plant)) {
-            // 设置子弹创建回调
             shooter->setCreateBulletCallback([]() -> Bullet* {
                 auto bullet = SnowPea::create();
                 if (bullet) {
@@ -319,20 +502,18 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
                 return bullet;
                 });
 
-            // 设置僵尸检测回调（核心）
             plant->setZombieCheckCallback([this](int row) -> bool {
-                // 遍历场景中的僵尸列表，检查指定行是否有存活僵尸
                 auto& zombies = GameDataCenter::getInstance()->getZombies();
                 for (auto zombie : zombies) {
                     if (zombie && zombie->isAlive() && !zombie->getIsDead() && zombie->getRow() == row) {
-                        return true; // 找到存活僵尸
+                        return true;
                     }
                 }
-                return false; // 无存活僵尸
+                return false;
                 });
         }
     }
-    if (_selectedPlantIndex == 3)
+    else if (_selectedPlantIndex == 3)
     {
         auto plant = CherryBomb::create();
         plant->setPosition(Vec2(gridCenterX, gridCenterY));
@@ -342,7 +523,7 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
         auto& zombielist = GameDataCenter::getInstance()->getZombies();
         plant->setZombiesList(&zombielist);
     }
-    if (_selectedPlantIndex == 4)
+    else if (_selectedPlantIndex == 4)
     {
         auto plant = PotatoMine::create();
         plant->setPosition(Vec2(gridCenterX, gridCenterY));
@@ -352,7 +533,7 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
         auto& zombielist = GameDataCenter::getInstance()->getZombies();
         plant->setZombiesList(&zombielist);
     }
-    if (_selectedPlantIndex == 5)
+    else if (_selectedPlantIndex == 5)
     {
         auto plant = WallNut::create();
         plant->setPosition(Vec2(gridCenterX, gridCenterY));
@@ -361,17 +542,15 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
         GameDataCenter::getInstance()->addPlant(plant);
     }
 
+    // 启动冷却
+    startCooldown(_selectedPlantIndex);
 
     // 取消选择状态
     cancelSelection();
 
-    auto label = Label::createWithTTF(
-        StringUtils::format("Put at (%d,%d)", row, col),
-        "fonts/Marker Felt.ttf",
-        90
-    );
+    auto label = Label::createWithTTF(StringUtils::format("Put at (%d,%d)", row, col), "fonts/Marker Felt.ttf", 90);
     label->setColor(Color3B::GREEN);
-    label->setPosition(Vec2(400,100));
+    label->setPosition(Vec2(400, 100));
     this->addChild(label, 100);
 
     // 淡出并移除提示
@@ -381,4 +560,10 @@ void PlantPlacementCore::placePlantAtPosition(const Vec2& position) {
         RemoveSelf::create(),
         nullptr
     ));
+}
+
+// 初始化地图格子（如果需要的话）
+void PlantPlacementCore::initMapGrids() {
+    // 可以在这里初始化地图格子，如果需要的话
+    // 目前已经在drawDebugGrids中绘制了
 }

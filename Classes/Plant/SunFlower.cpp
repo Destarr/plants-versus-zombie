@@ -1,5 +1,8 @@
 #include "SunFlower.h"
+#include "GameDataCenter.h"
+#include "SunSystem.h"
 
+USING_NS_CC;
 
 SunFlower::SunFlower() : Plant() {}
 
@@ -14,12 +17,12 @@ bool SunFlower::init() {
     this->setSunCost(SUN_FLOWER_COST);
     this->setMaxHealth(SUN_FLOWER_HEALTH);
     this->setHealth(SUN_FLOWER_HEALTH);
-    this->setAttackInterval(SUN_PRODUCE_INTERVAL); // 复用attackInterval作为产阳光间隔
+    this->setAttackInterval(SUN_PRODUCE_INTERVAL);
     this->m_attackCounter = this->getAttackInterval();
-    this->setIsReady(false); // 初始状态设为未就绪
+    this->setIsReady(false);
 
     // 替换向日葵的可视化占位符
-    this->removeAllChildren(); // 清除父类的绿色占位符
+    this->removeAllChildren();
     this->setTexture("Plant/SunFlower.png");
 
     CCLOG("SunFlower initialized, sun cost: %d, produce interval: %.1fs",
@@ -29,8 +32,6 @@ bool SunFlower::init() {
 }
 
 void SunFlower::update(float delta) {
-
-
     // 先调用父类的update，复用攻击计数器逻辑
     Plant::update(delta);
 
@@ -38,6 +39,11 @@ void SunFlower::update(float delta) {
 
     // 如果计时完成（可生产阳光），执行生产逻辑
     if (m_isReady && !m_isDead) {
+        // 重置状态
+        m_isReady = false;
+        m_attackCounter = this->getAttackInterval();
+
+        // 生产阳光
         this->attack();
     }
 }
@@ -50,25 +56,30 @@ void SunFlower::attack() {
 }
 
 void SunFlower::produceSun() {
-    // 创建阳光对象
-    auto sun = SunBeam::create();
-    if (!sun) {
-        CCLOG("===== ERROR: SunBeam create failed! =====");
+    // 获取阳光系统
+    auto sunSystem = GameDataCenter::getInstance()->getSunSystem();
+
+    if (!sunSystem) {
+        CCLOG("SunFlower: SunSystem not found!");
         return;
     }
-    CCLOG("===== SunBeam create success! =====");
 
-    // 设置阳光属性
-    sun->setValue(SUN_PRODUCE_VALUE);
-    sun->setPosition(this->getPosition() + Vec2(0, 30)); // 阳光生成在向日葵上方
+    CCLOG("SunFlower producing sun");
 
-    // 添加到当前场景（需确保向日葵已添加到场景中）
-    this->getParent()->addChild(sun, 20); // 层级设高，避免被遮挡
+    // 计算阳光生成位置（在向日葵位置上方）
+    Vec2 sunflowerPos = this->getPosition();
+    Vec2 sunPos = sunflowerPos + Vec2(0, 50);
 
-    // 播放阳光动画
-    sun->showCollectableAnimation();
+    // 转换为世界坐标
+    if (this->getParent()) {
+        sunPos = this->getParent()->convertToWorldSpace(sunPos);
+    }
 
-    // 重置攻击计数器（核心：生产阳光后重置计时，否则会一直生产）
-    this->m_attackCounter = this->getAttackInterval();
-    this->m_isReady = false;
+    // 通过阳光系统生成可收集的阳光
+    sunSystem->generateFallingSunAtPosition(sunPos, SUN_PRODUCE_VALUE);
+
+    // 播放向日葵产阳光的动画
+    auto scaleUp = ScaleTo::create(0.1f, 1.2f);
+    auto scaleDown = ScaleTo::create(0.1f, 1.0f);
+    this->runAction(Sequence::create(scaleUp, scaleDown, nullptr));
 }

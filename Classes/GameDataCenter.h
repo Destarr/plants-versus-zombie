@@ -8,6 +8,7 @@
 #include "Plant/Plant.h"
 #include "Bullet/Bullet.h"
 #include "Manager/CollisionDetector.h"
+#include "SunSystem.h"
 
 USING_NS_CC;
 
@@ -49,6 +50,9 @@ public:
     void setZombieDeathCallback(const ZombieDeathCallback& callback) {
         m_zombieDeathCallback = callback;
     }
+
+    void setSunSystem(SunSystem* sunSystem) { _sunSystem = sunSystem; }
+    SunSystem* getSunSystem() { return _sunSystem; }
 private:
 
     GameDataCenter() = default;
@@ -57,7 +61,10 @@ private:
     // 内部清理函数
     void clearAll();
 
+    SunSystem* _sunSystem;
+
     static GameDataCenter* s_instance;
+
     std::vector<Zombie*> m_zombies;
     std::vector<Plant*> m_plants;
     std::vector<Bullet*> m_bullets;
