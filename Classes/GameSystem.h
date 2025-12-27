@@ -1,49 +1,46 @@
+// GameSystem.h 中需要添加的成员和方法声明
 #ifndef __GAME_SYSTEM_H__
 #define __GAME_SYSTEM_H__
 
 #include "cocos2d.h"
-USING_NS_CC;
 
-class GameSystem : public Node {
+class Node;
+class Zombie;
+
+class GameSystem : public cocos2d::Node {
 public:
-
     static GameSystem* create(Node* gameLayer);
-    virtual bool init(Node* gameLayer);
+    bool init(Node* gameLayer);
 
-    // 开始游戏
     void startGame();
-
-    // 暂停游戏逻辑
     void pauseGame();
-
-    // 恢复游戏逻辑
     void resumeGame();
 
-    // 重新开始游戏
-    void restartGame();
+    // 新增函数声明
+    void onRestartClicked(cocos2d::Ref* sender);
+    void showGameOverUI(bool isWin);
 
-    void onZombieDefeated(Node* zombie);
-
-private:
-    Node* _gameLayer;
-    ProgressTimer* _progressBar;
-    Label* _progressLabel;
-
-    int _defeatedZombies;
-    int _totalZombies;
-    int _zombiesSpawned;
-    float _spawnInterval;
-    bool _isGameRunning;
-
-    void spawnZombie(float dt);
     template<typename T>
     void spawnZombie_standard(int row);
 
-    //僵尸到达房子回调函数
-    void onZombieReachHouse(Zombie* zombie);
-    
-    void updateProgress();
+private:
     void createProgressBar();
+    void spawnZombie(float dt);
+    void onZombieDefeated(Zombie* zombie);
+    void onZombieReachHouse(Zombie* zombie);
+    void updateProgress();
+
+private:
+    Node* _gameLayer;
+    cocos2d::ProgressTimer* _progressBar;
+    cocos2d::Label* _progressLabel;
+
+    int _defeatedZombies;
+    int _zombiesSpawned;
+    int _totalZombies;
+    float _spawnInterval;
+    bool _isGameRunning;
+    bool _isGameOver;
 };
 
 #endif // __GAME_SYSTEM_H__

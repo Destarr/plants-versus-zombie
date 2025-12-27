@@ -1,7 +1,7 @@
 #include "GameDataCenter.h"
 #include "GameSystem.h"
 #include "GameScene.h"
-#include "Zombie/Zombie.h"  // 假设Zombie类已存在
+#include "Zombie/Zombie.h"
 #include "Zombie/ConeheadZombie.h" 
 #include "Zombie/BucketheadZombie.h" 
 #include <typeinfo>
@@ -29,6 +29,7 @@ bool GameSystem::init(Node* gameLayer) {
     _totalZombies = 30;  // 总共30个僵尸
     _spawnInterval = 5.0f;
     _isGameRunning = false;
+    _isGameOver = false;
 
     // 创建进度条UI
     createProgressBar();
@@ -49,7 +50,7 @@ void GameSystem::createProgressBar() {
     auto bg = Sprite::create("Menu//FlagMeterEmpty.png");
     bg->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
     bg->setPosition(Vec2(visibleSize.width - 150, 80));
-    this->addChild(bg,30);
+    this->addChild(bg, 30);
 
     // 进度条
     auto progressSprite = Sprite::create("Menu/FlagMeterFull.png");
@@ -61,18 +62,18 @@ void GameSystem::createProgressBar() {
     _progressBar->setPercentage(0);
     _progressBar->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
     _progressBar->setPosition(bg->getPosition());
-    this->addChild(_progressBar,40);
+    this->addChild(_progressBar, 40);
 
     // 进度标签
     _progressLabel = Label::createWithTTF("0/30", "fonts/Marker Felt.ttf", 18);
     _progressLabel->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
     _progressLabel->setPosition(Vec2(bg->getPositionX(), bg->getPositionY() - 20));
     _progressLabel->setColor(Color3B::WHITE);
-    this->addChild(_progressLabel,41);
+    this->addChild(_progressLabel, 41);
 }
 
 void GameSystem::startGame() {
-    if (_isGameRunning) return;
+    if (_isGameRunning || _isGameOver) return;
 
     _isGameRunning = true;
     this->schedule(CC_SCHEDULE_SELECTOR(GameSystem::spawnZombie), _spawnInterval);
@@ -91,7 +92,7 @@ void GameSystem::pauseGame() {
 }
 
 void GameSystem::resumeGame() {
-    if (_isGameRunning) return;
+    if (_isGameRunning || _isGameOver) return;
 
     _isGameRunning = true;
     this->schedule(CC_SCHEDULE_SELECTOR(GameSystem::spawnZombie), _spawnInterval);
@@ -102,13 +103,8 @@ void GameSystem::resumeGame() {
     }
 }
 
-void GameSystem::restartGame() {
-    auto scene = Game::createScene();
-    Director::getInstance()->replaceScene(scene);
-}
-
 void GameSystem::spawnZombie(float dt) {
-    if (_zombiesSpawned >= _totalZombies || !_isGameRunning) {
+    if (_zombiesSpawned >= _totalZombies || !_isGameRunning || _isGameOver) {
         return;
     }
 
@@ -131,7 +127,7 @@ void GameSystem::spawnZombie(float dt) {
         spawnZombie_standard<BucketheadZombie>(randomrow);
         _zombiesSpawned++;
     }
-    
+
 
     // 随着游戏进行，加快生成速度
     if (_spawnInterval > 3.0f && _zombiesSpawned % 5 == 0) {
@@ -141,20 +137,18 @@ void GameSystem::spawnZombie(float dt) {
     }
 }
 
-void GameSystem::onZombieDefeated(Node* zombie) {
+void GameSystem::onZombieDefeated(Zombie* zombie) {
+    if (_isGameOver) return;
+
     _defeatedZombies++;
     // 更新进度
     updateProgress();
 
     // 如果击败了所有僵尸，游戏胜利
     if (_defeatedZombies >= _totalZombies) {
-        pauseGame();
-
-        auto visibleSize = Director::getInstance()->getVisibleSize();
-        auto victoryLabel = Label::createWithTTF("You win!", "fonts/Marker Felt.ttf", 48);
-        victoryLabel->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
-        victoryLabel->setColor(Color3B::YELLOW);
-        this->addChild(victoryLabel, 100);
+        Director::getInstance()->pause();
+        _isGameOver = true;
+        showGameOverUI(true); // true表示胜利
     }
 }
 
@@ -195,9 +189,70 @@ void GameSystem::spawnZombie_standard(int row)
 // 新增：僵尸到达房子的回调处理
 void GameSystem::onZombieReachHouse(Zombie* zombie)
 {
-    if (zombie)
+    if (zombie && !_isGameOver)
     {
         CCLOG("Game: Zombie reached house at row %d! Game over for this row!", zombie->getRow());
-        // 这里可以添加游戏失败逻辑、扣血、播放音效等
+        Director::getInstance()->pause();
+        _isGameOver = true;
+        showGameOverUI(false); // false表示失败
+    }
+}
+
+// 新增：重新开始按钮回调函数
+void GameSystem::onRestartClicked(Ref* sender) {
+    // 使用replaceScene重新开始
+    auto scene = Game::createScene();
+    Director::getInstance()->replaceScene(scene);
+    Director::getInstance()->resume();
+}
+
+// 新增：显示游戏结束UI
+void GameSystem::showGameOverUI(bool isWin) {
+    auto visibleSize = Director::getInstance()->getVisibleSize();
+    Vec2 origin = Director::getInstance()->getVisibleOrigin();
+    Vec2 center = Vec2(visibleSize.width / 2 + origin.x, visibleSize.height / 2 + origin.y);
+
+    // 创建半透明黑色背景
+    auto overlay = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
+    overlay->setPosition(Vec2::ZERO);
+    this->addChild(overlay, 200);
+
+    // 游戏结束文本
+    std::string gameOverText = isWin ? "You Win!" : "You Lost!";
+    Color3B textColor = isWin ? Color3B::GREEN : Color3B::RED;
+
+    auto gameOverLabel = Label::createWithTTF(gameOverText, "fonts/Marker Felt.ttf", 64);
+    gameOverLabel->setPosition(Vec2(center.x, center.y + 100));
+    gameOverLabel->setColor(textColor);
+    this->addChild(gameOverLabel, 201);
+
+    // 使用MenuItemImage创建重新开始按钮
+    auto restartItem = MenuItemImage::create(
+        "Menu/restartButton.png",   // 未点击时的图片
+        "Menu/restartButtonSelected.png", // 点击时的图片
+        CC_CALLBACK_1(GameSystem::onRestartClicked, this));
+
+    // 设置按钮位置和缩放
+    restartItem->setPosition(Vec2(center.x, center.y - 50));
+    restartItem->setScale(1.5f);
+
+    // 创建菜单并添加按钮
+    auto restartMenu = Menu::create(restartItem, nullptr);
+    restartMenu->setPosition(Vec2::ZERO);
+    this->addChild(restartMenu, 201);
+
+    // 显示最终分数/统计信息
+    std::string statsText = StringUtils::format("Zombies Defeated: %d/%d", _defeatedZombies, _totalZombies);
+    auto statsLabel = Label::createWithTTF(statsText, "fonts/Marker Felt.ttf", 28);
+    statsLabel->setPosition(Vec2(center.x, center.y - 150));
+    statsLabel->setColor(Color3B::YELLOW);
+    this->addChild(statsLabel, 201);
+
+    // 如果是失败，显示具体原因
+    if (!isWin) {
+        auto reasonLabel = Label::createWithTTF("A zombie reached your house!", "fonts/Marker Felt.ttf", 24);
+        reasonLabel->setPosition(Vec2(center.x, center.y - 200));
+        reasonLabel->setColor(Color3B::ORANGE);
+        this->addChild(reasonLabel, 201);
     }
 }
